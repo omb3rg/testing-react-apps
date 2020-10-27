@@ -6,7 +6,6 @@ import {render, screen, act} from '@testing-library/react'
 import Location from '../../examples/location'
 
 // 🐨 set window.navigator.geolocation to an object that has a getCurrentPosition mock function
-
 // 💰 I'm going to give you this handy utility function
 // it allows you to create a promise that you can resolve/reject on demand.
 function deferred() {
@@ -28,18 +27,34 @@ function deferred() {
 test('displays the users current location', async () => {
   // 🐨 create a fakePosition object that has an object called "coords" with latitude and longitude
   // 📜 https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPosition
-  //
+  const fakePosition = {coords: {latitude: 0, longitude: 0}}
+  const {promise, resolve} = deferred()
+  
   // 🐨 create a deferred promise here
-  //
+  // const {promise, resolve, reject} = deferred()
   // 🐨 Now we need to mock the geolocation's getCurrentPosition function
   // To mock something you need to know its API and simulate that in your mock:
   // 📜 https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/getCurrentPosition
-  //
-  // here's an example of the API:
-  // function success(position) {}
-  // function error(error) {}
-  // navigator.geolocation.getCurrentPosition(success, error)
-  //
+
+  window.navigator.geolocation.getCurrentPosition.mockImplementation(
+    callback => {
+    promise.then(() => {
+      callback(fakePosition)
+    })
+  })
+
+  render (<Location />)
+  expect(screen.getByLabelText(/loading/i)).toBeInTheDocument()
+  // do other setup stuff and assert on the pending state
+  await act(async () => {
+    resolve()
+    await promise
+  })
+  
+
+  expect(screen.getAllByText(/latitude/i)).toHaveTextContent(`Latitude: ${fakePosition.coords.latitude}`)
+  expect(screen.getAllByText(/longitude/i)).toHaveTextContent(`Latitude: ${fakePosition.coords.longitude}`)
+  
   // 🐨 so call mockImplementation on getCurrentPosition
   // 🐨 the first argument of your mock should accept a callback
   // 🐨 you'll call the callback when the deferred promise resolves
